@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Exam Summary</title>
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Segoe UI',Arial,sans-serif; background:#eef2f7; min-height:100vh; padding:2rem 1rem; color:#1a1f2e; }
+    .container { max-width:820px; margin:0 auto; display:flex; flex-direction:column; gap:1.4rem; }
+    .page-header { display:flex; align-items:center; gap:14px; padding-bottom:1.3rem; border-bottom:1px solid #d8dde6; }
+    .page-header h1 { font-size:1.4rem; font-weight:700; }
+    .page-header p  { font-size:.82rem; color:#8a97a8; margin-top:3px; }
+    .banner { padding:.75rem 1.2rem; border-radius:7px; font-weight:600; font-size:.9rem; }
+    .banner.ok   { background:#f0faf4; color:#1b6b34; border:1px solid #a8d5b5; }
+    .banner.warn { background:#fdf2f2; color:#c0392b; border:1px solid #f5b0b0; }
+    .card { background:#fff; border:1px solid #d8dde6; border-radius:10px; padding:1.4rem; box-shadow:0 2px 8px rgba(0,0,0,.06); }
+    .card-title { font-size:.68rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#8a97a8; margin-bottom:.9rem; padding-bottom:.6rem; border-bottom:1px solid #eaecf0; }
+    .info-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:1rem; }
+    .info-item { display:flex; flex-direction:column; gap:.25rem; }
+    .info-label { font-size:.72rem; color:#8a97a8; text-transform:uppercase; letter-spacing:.04em; }
+    .info-value { font-size:.95rem; font-weight:500; }
+    .info-value.mono { font-family:'Courier New',monospace; font-size:.9rem; }
+    .info-value.ok   { color:#27ae60; }
+    .info-value.warn { color:#e67e22; }
+    .info-value.bad  { color:#c0392b; }
+    .shots-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:.9rem; }
+    .shot { border:1px solid #d8dde6; border-radius:7px; overflow:hidden; }
+    .shot img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; background:#e8ecf0; }
+    .shot-meta { padding:.4rem .6rem; }
+    .shot-reason { font-size:.72rem; font-weight:600; color:#e67e22; display:block; }
+    .shot-time   { font-size:.67rem; color:#8a97a8; font-family:'Courier New',monospace; }
+    .back-btn {
+      display:inline-flex; align-items:center; gap:8px;
+      padding:.65rem 1.4rem; background:#2c5f9e; color:#fff;
+      border:none; border-radius:7px; font-family:inherit; font-size:.9rem;
+      font-weight:600; cursor:pointer; text-decoration:none; transition:background .15s;
+    }
+    .back-btn:hover { background:#1a3d6b; }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <div class="page-header">
+      <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+        <rect x="1" y="1" width="30" height="30" rx="4" stroke="#2c5f9e" stroke-width="1.5"/>
+        <path d="M5 23 L16 8 L27 23" stroke="#2c5f9e" stroke-width="2" fill="none"/>
+        <rect x="11" y="17" width="10" height="6" rx="1" stroke="#2c5f9e" stroke-width="1.5" fill="none"/>
+      </svg>
+      <div>
+        <h1>Examination Summary</h1>
+        <p>Online Proctored Assessment Report</p>
+      </div>
+    </div>
+
+    {% if log %}
+    <div class="banner {% if log.termination_reason == 'Submitted by student' %}ok{% else %}warn{% endif %}">
+      {% if log.termination_reason == 'Submitted by student' %}
+        &#10003; Exam submitted successfully
+      {% else %}
+        &#9888; Exam terminated — {{ log.termination_reason }}
+      {% endif %}
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-title">Student Information</div>
+      <div class="info-grid">
+        <div class="info-item">
+          <span class="info-label">Name</span>
+          <span class="info-value">{{ student.name if student else '—' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Roll Number</span>
+          <span class="info-value mono">{{ student.roll if student else '—' }}</span>
+        </div>
+        {% if log %}
+        <div class="info-item">
+          <span class="info-label">Login Time</span>
+          <span class="info-value mono">{{ log.login_time or '—' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">End Time</span>
+          <span class="info-value mono">{{ log.end_time or '—' }}</span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Total Warnings</span>
+          <span class="info-value {% if log.warning_count >= 4 %}bad{% elif log.warning_count >= 2 %}warn{% else %}ok{% endif %}">
+            {{ log.warning_count }} / 4
+          </span>
+        </div>
+        <div class="info-item">
+          <span class="info-label">Exit Reason</span>
+          <span class="info-value">{{ log.termination_reason or '—' }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Evidence Screenshots ({{ shots|length if shots else 0 }})</div>
+      {% if shots %}
+      <div class="shots-grid">
+        {% for s in shots %}
+        <div class="shot">
+          <img src="/static/screenshots/{{ s.filepath.split('/')[-1] }}" alt="Evidence"
+               onerror="this.style.display='none'"/>
+          <div class="shot-meta">
+            <span class="shot-reason">{{ s.reason }}</span>
+            <span class="shot-time">{{ s.captured_at }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <p style="color:#8a97a8;font-size:.875rem;">No screenshots captured during this session.</p>
+      {% endif %}
+    </div>
+
+    <div>
+      <a href="/" class="back-btn">&#8592; Back to Login</a>
+    </div>
+
+  </div>
+</body>
+</html>
